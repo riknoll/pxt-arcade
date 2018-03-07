@@ -27,7 +27,10 @@ namespace pxt.editor {
                         }).then((pcm1k: AudioBuffer) => {
                             // resample sound
                             const data = pcm1k.getChannelData(0);
-
+                            var song = audioContext.createBufferSource();
+                            song.buffer = pcm1k;                   
+                            song.connect(audioContext.destination);
+                            song.start();
                         }, err => reject(err))
                 };
                 reader.onerror = (e) => reject(e);
