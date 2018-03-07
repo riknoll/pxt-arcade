@@ -62,6 +62,16 @@
         "simAnimationEnter": "fly right in",
         "simAnimationExit": "fly right out",
         "crowdinProject": "kindscript",
+        "selectLanguage": true,
+        "highContrast": true,
+        "hasAudio": true,
+        "usbHelp": [],
+        "extendEditor": true,
+        "disableBlockIcons": true,
+        "socialOptions": {
+            "orgTwitterHandle": "MSMakeCode",
+            "hashtags": "MakeCode"
+        },
         "monacoColors": {
             "editor.background": "#ecf0f1"
         }
