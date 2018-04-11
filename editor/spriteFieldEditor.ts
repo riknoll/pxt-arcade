@@ -7,6 +7,24 @@
 namespace pxt.editor {
     import svg = svgUtil;
 
+    export interface FieldSpriteEditorOptions {
+        // Format is semicolon separated pairs, e.g. "width,height;width,height;..."
+        sizes: string;
+
+        // Index of initial color (defaults to 1)
+        initColor: string;
+
+        initWidth: string;
+        initHeight: string;
+    }
+
+    interface ParsedSpriteEditorOptions {
+        sizes: [number, number][];
+        initColor: number;
+        initWidth: number;
+        initHeight: number;
+    }
+
     // It's a square
     const TOTAL_WIDTH = 55;
     const PADDING = 5;
@@ -20,14 +38,18 @@ namespace pxt.editor {
     export class FieldSpriteEditor extends Blockly.Field implements Blockly.FieldCustom {
         public isFieldCustom_ = true;
 
-        private params: any;
+        private params: ParsedSpriteEditorOptions;
         private editor: mkcd.SpriteEditor;
         private preview: mkcd.BitmapImage;
         private state: mkcd.Bitmap;
 
         constructor(text: string, params: any, validator?: Function) {
             super(text, validator);
-            this.params = params;
+            this.params = parseFieldOptions(params);
+
+            if (!this.state) {
+                this.state = new mkcd.Bitmap(this.params.initWidth, this.params.initHeight);
+            }
         }
 
         init() {
@@ -42,7 +64,7 @@ namespace pxt.editor {
             }
 
             if (!this.state) {
-                this.state = new mkcd.Bitmap(16, 16);
+                this.state = new mkcd.Bitmap(this.params.initWidth, this.params.initHeight);
             }
 
             this.redrawPreview();
@@ -71,6 +93,8 @@ namespace pxt.editor {
             this.editor.render(contentDiv);
             this.editor.rePaint();
 
+            this.editor.setActiveColor(this.params.initColor, true);
+            this.editor.setSizePresets(this.params.sizes);
 
             Blockly.DropDownDiv.setColour("#2c3e50", "#2c3e50");
             Blockly.DropDownDiv.showPositionedByBlock(this, this.sourceBlock_, () => {
@@ -146,28 +170,14 @@ namespace pxt.editor {
                 .stroke("#898989", 1)
                 .corner(4);
 
+            const palette = U.clone(pxt.appTarget.runtime.palette);
+            palette[0] = null;
+
             this.preview = new mkcd.BitmapImage({
                 //backgroundFill: this.sourceBlock_.getColourSecondary(),
                 outerMargin: 2,
                 cellClass: "pixel-cell"
-            }, this.state, [
-                    null,
-                    "#ffffff", // white
-                    "#33e2e4", // teal
-                    "#05b3e0", // blue
-                    "#3d30ad", // violet
-                    "#b09eff", // light violet
-                    "#5df51f", // green
-                    "#6a8927", // dollar green
-                    "#65471f", // brown
-                    "#98294a", // bordowy
-                    "#f80000", // red
-                    "#e30ec0", // pink
-                    "#ff9da5", // light pink
-                    "#ff9005", // orange
-                    "#efe204", // yellow
-                    "#000000", // black
-                ]);
+            }, this.state, palette);
 
             this.preview.translate(PADDING + BG_PADDING, PADDING + BG_PADDING);
             this.preview.setGridDimensions(PREVIEW_WIDTH);
@@ -226,7 +236,6 @@ namespace pxt.editor {
                 // an empty/invalid sprite and we are converting it to an empty 16x16 sprite
                 // next time the project saves. The best behavior would be to flag this in
                 // the decompiler and return a grey block but that's not supported.
-                this.state = new mkcd.Bitmap(16, 16);
                 return;
             }
 
@@ -243,6 +252,61 @@ namespace pxt.editor {
                     }
                 }
             }
+        }
+    }
+
+    function parseFieldOptions(opts: FieldSpriteEditorOptions) {
+        const parsed: ParsedSpriteEditorOptions = {
+            sizes: [
+                [8, 8],
+                [8, 16],
+                [16, 16],
+                [16, 32],
+                [32, 32],
+            ],
+            initColor: 1,
+            initWidth: 16,
+            initHeight: 16,
+        };
+
+        if (!opts) {
+            return parsed;
+        }
+
+        if (opts.sizes != null) {
+            const pairs = opts.sizes.split(";");
+            const sizes: [number, number][] = [];
+            for (let i = 0; i < pairs.length; i++) {
+                const pair = pairs[i].split(",");
+                if (pair.length !== 2) {
+                    continue;
+                }
+
+                const width = parseInt(pair[0]);
+                const height = parseInt(pair[1]);
+
+                if (isNaN(width) || isNaN(height)) {
+                    continue;
+                }
+
+                sizes.push([width, height]);
+            }
+
+            parsed.sizes = sizes;
+        }
+
+        parsed.initColor = withDefault(opts.initColor, parsed.initColor);
+        parsed.initWidth = withDefault(opts.initWidth, parsed.initWidth);
+        parsed.initHeight = withDefault(opts.initHeight, parsed.initHeight);
+
+        return parsed;
+
+        function withDefault(raw: string, def: number) {
+            const res = parseInt(raw);
+            if (isNaN(res)) {
+                return def;
+            }
+            return res;
         }
     }
 }

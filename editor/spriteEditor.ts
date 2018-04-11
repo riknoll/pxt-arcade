@@ -75,23 +75,7 @@ namespace mkcd {
         private previewWidth: number;
 
         constructor(bitmap: Bitmap) {
-            this.colors =  [
-                "#ffffff", // white
-                "#33e2e4", // teal
-                "#05b3e0", // blue
-                "#3d30ad", // violet
-                "#b09eff", // light violet
-                "#5df51f", // green
-                "#6a8927", // dollar green
-                "#65471f", // brown
-                "#98294a", // bordowy
-                "#f80000", // red
-                "#e30ec0", // pink
-                "#ff9da5", // light pink
-                "#ff9005", // orange
-                "#efe204", // yellow
-                "#000000", // black
-            ];
+            this.colors = pxt.appTarget.runtime.palette.slice(1);
 
             this.columns = bitmap.width;
             this.rows = bitmap.height;
@@ -241,16 +225,21 @@ namespace mkcd {
             }
         }
 
-        setActiveColor(color: number) {
-            this.color = color;
-
-            // If the user is erasing, go back to pencil
-            if (this.activeTool === PaintTool.Erase) {
-                this.toolbar.resetTool();
-                this.activeTool = PaintTool.Normal;
+        setActiveColor(color: number, setPalette = false) {
+            if (setPalette) {
+                this.palette.setSelected(color);
             }
+            else {
+                this.color = color;
 
-            this.edit = this.newEdit(this.color);
+                // If the user is erasing, go back to pencil
+                if (this.activeTool === PaintTool.Erase) {
+                    this.toolbar.resetTool();
+                    this.activeTool = PaintTool.Normal;
+                }
+
+                this.edit = this.newEdit(this.color);
+            }
         }
 
         setActiveTool(tool: PaintTool) {
@@ -261,6 +250,12 @@ namespace mkcd {
         setToolWidth(width: number) {
             this.toolWidth = width;
             this.edit = this.newEdit(this.color);
+
+            // Cursor doesn't affect fill, so switch to pencil
+            if (this.activeTool === PaintTool.Fill) {
+                this.toolbar.resetTool();
+                this.activeTool = PaintTool.Normal;
+            }
         }
 
         undo() {
@@ -307,6 +302,10 @@ namespace mkcd {
 
             // Canvas size changed and some edits rely on that (like paint)
             this.edit = this.newEdit(this.color);
+        }
+
+        setSizePresets(presets: [number, number][]) {
+            this.toolbar.setSizePresets(presets);
         }
 
         canvasWidth() {
